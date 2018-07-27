@@ -1,0 +1,126 @@
+// CreateSong/SongList Components with Sate
+
+
+import React, { Component } from "react";
+import gql from "graphql-tag";
+import { Link } from "react-router";
+import { graphql } from "react-apollo"
+import query from "../queries/fetchSongs";
+
+class SongList extends Component {
+   constructor(props) {
+       super(props);
+       this.state = {songs: []};
+   }
+   onSongDelete(id) {
+       console.log(this.props);
+       this.props.mutate({ variables: { id } });
+       let copyArray = [...this.state.songs];
+       this.state.songs.map((song, index) => {
+           if (song.id === id)
+               copyArray.splice(index, 1);
+       });
+       this.setState({songs: copyArray});
+       console.log('props.songs', this.props.data.songs);
+   }
+   componentWillReceiveProps(nextProps) {
+       console.log('receiveProps', nextProps);
+       if (nextProps.data.songs)
+           this.setState({songs: nextProps.data.songs});
+   }
+   renderSongs() {
+       return this.state.songs.map(song => {    
+           return(
+                   
+                       <li key={song.id} className="collection-item">
+                           {song.title}
+                           <i className="material-icons"
+                           onClick={() => this.onSongDelete(song.id)}
+                           >delete</i>
+                       </li>
+                 
+               );
+           });
+   }
+
+   render() {                    
+       if(this.props.data.loading) { return <div>bro, chill out data still loading...</div>; }
+        return (
+           <div>
+               <h5>List of users scanned:</h5>
+               <ul className="collection">
+                   {this.renderSongs()}
+               </ul>
+               <Link
+                   to="users/new" className="btn-float btn-large red right" >
+                   < i className="material-icons">add</i>
+               </Link>
+           </div>
+       );
+   } 
+}
+
+const mutation = gql `
+mutation DeleteSong($id: ID) {
+   deleteSong(id: $id) {
+       id
+   }
+   }
+`;
+
+export default graphql(mutation)(
+   graphql(query)(SongList)
+);
+
+import React, { Component } from "react";
+import {graphql} from "react-apollo";
+import { Link, hashHistory } from "react-router";
+import gql from "graphql-tag";
+import query from "../queries/fetchSongs";
+
+class SongCreate extends Component {
+   constructor(props) {
+       super(props);
+
+       this.state = {title: ''};
+   }
+
+  // Event onSumbit handler to invoke mutation
+   onSubmit(event) {
+       event.preventDefault();
+
+       this.props.mutate({
+           variables: {title: this.state.title},
+           refetchQueries: [{ query }]
+       }).then(() => hashHistory.push('/'))
+   }
+
+   render() {
+       return(
+           <div>
+               <Link to="/" className="btn-float btn-large red right">Show Users</Link>
+               <h3>Need Help?</h3>
+               <h5>Please Scan badge below:</h5>
+               <form onSubmit={this.onSubmit.bind(this)}>
+                   <label>User Name:</label>
+                   <input
+                       onChange={event => this.setState({title: event.target.value})}
+                       value={this.state.title}
+                   />
+               </form>
+           </div>
+       );
+   }
+}
+
+
+// Define the ADD mutation with Query Vairables:
+const mutation = gql `
+   mutation AddSong($title: String){
+       addSong(title: $title) {
+           title
+       }
+   }
+`;
+
+export default graphql (mutation)(SongCreate);
